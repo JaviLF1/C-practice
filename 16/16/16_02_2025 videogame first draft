@@ -1,6 +1,3 @@
-arduino
-
-
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
@@ -49,12 +46,14 @@ void loop() {
 	bottonStateL=digitalRead(bottonL);
 	bottonStateJump=digitalRead(bottonJump);
 
+//Movement in the x axis
+
 	if (bottonStateR==1){
 		
 		PlayerCx= PlayerCx + 1;
 
 		display.clearDisplay(); //for Clearing the display
-    display.drawBitmap(PlayerCx, 57, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
+    display.drawBitmap(PlayerCx, PlayerCy, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
     display.display();
 
 
@@ -65,17 +64,25 @@ void loop() {
 		PlayerCx= PlayerCx -1;
 
 		display.clearDisplay(); //for Clearing the display
-    display.drawBitmap(PlayerCx, 57, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
+    display.drawBitmap(PlayerCx, PlayerCy, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
     display.display();
 
 
 	}
-		/*
+		//jum without moving
 		if (bottonStateJump==1){
 
 			for(int i=0; i<15; i++) {
 
 				PlayerCy= PlayerCy -1;
+				bottonStateR=digitalRead(bottonR);
+				if (bottonStateR==1){
+					PlayerCx= PlayerCx + 1;
+				}
+				bottonStateL=digitalRead(bottonL);
+				if (bottonStateL==1){
+					PlayerCx= PlayerCx - 1;
+				}
 				
 
 				display.clearDisplay(); //for Clearing the display
@@ -86,6 +93,15 @@ void loop() {
 				if (i==14){
 					//at is for air time, I used it to gave the efect that it manteins a certain time int the air
 					for (int at=0; at<3; at++){
+						bottonStateR=digitalRead(bottonR);
+						if (bottonStateR==1){
+						PlayerCx= PlayerCx + 1;
+						}
+						bottonStateL=digitalRead(bottonL);
+						if (bottonStateL==1){
+						PlayerCx= PlayerCx - 1;
+						}
+
 						display.clearDisplay(); //for Clearing the display
     				display.drawBitmap(PlayerCx, PlayerCy, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
     				display.display();
@@ -103,22 +119,38 @@ void loop() {
 			for(int i=0; i<15; i++) {
 
 				PlayerCy= PlayerCy +1;
+				bottonStateR=digitalRead(bottonR);
+				if (bottonStateR==1){
+				PlayerCx= PlayerCx + 1;
+				}
+				bottonStateL=digitalRead(bottonL);
+				if (bottonStateL==1){
+				PlayerCx= PlayerCx - 1;
+				}
 				
 
 				display.clearDisplay(); //for Clearing the display
     		display.drawBitmap(PlayerCx, PlayerCy, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
     		display.display();
-				delay(5);
-			}*/
+				delay(2);
+				bottonStateJump=digitalRead(bottonJump);
+			}
 
-		
+		}
 
-		if ((bottonStateR==1)&&(bottonStateJump==1)){
+		if (((bottonStateR==1)||(bottonStateL==1))&&(bottonStateJump==1)){
 
 			for(int i=0; i<15; i++) {
 
 				PlayerCy= PlayerCy -1;
-				PlayerCx= PlayerCx + 1;
+				bottonStateR=digitalRead(bottonR);
+				if (bottonStateR==1){
+					PlayerCx= PlayerCx + 1;
+				}
+				bottonStateL=digitalRead(bottonL);
+				if (bottonStateL==1){
+					PlayerCx= PlayerCx - 1;
+				}
 				
 
 				display.clearDisplay(); //for Clearing the display
@@ -129,10 +161,22 @@ void loop() {
 				if (i==14){
 					//at is for air time, I used it to gave the efect that it manteins a certain time int the air
 					for (int at=0; at<3; at++){
+
+						bottonStateR=digitalRead(bottonR);
+						if (bottonStateR==1){
+						PlayerCx= PlayerCx + 1;
+						}
+						bottonStateL=digitalRead(bottonL);
+						if (bottonStateL==1){
+						PlayerCx= PlayerCx - 1;
+				}
+						
+
 						display.clearDisplay(); //for Clearing the display
     				display.drawBitmap(PlayerCx, PlayerCy, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
     				display.display();
 						delay(2);
+
 					}
 
 
@@ -146,7 +190,14 @@ void loop() {
 			for(int i=0; i<15; i++) {
 
 				PlayerCy= PlayerCy +1;
-				PlayerCx= PlayerCx + 1;
+				bottonStateR=digitalRead(bottonR);
+				if (bottonStateR==1){
+					PlayerCx= PlayerCx + 1;
+				}
+				bottonStateL=digitalRead(bottonL);
+				if (bottonStateL==1){
+					PlayerCx= PlayerCx - 1;
+				}
 				
 
 				display.clearDisplay(); //for Clearing the display
