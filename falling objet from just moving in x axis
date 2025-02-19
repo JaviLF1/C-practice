@@ -1,0 +1,159 @@
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
+
+#define bottonL 12
+#define bottonR 11
+#define bottonJump 10
+
+int bottonStateR=0;
+int bottonStateL=0;
+int bottonStateJump=0;
+
+int PlayerCx=0;
+int PlayerCy=57;
+
+int ground = 57;
+
+
+//Images
+const unsigned char Floor [] PROGMEM = {
+	0xff, 0xff, 0xff, 0xff, 0xe0, 0xff, 0xff, 0xff, 0xff, 0xe0
+};
+const unsigned char player [] PROGMEM = {
+	0xfe, 0x82, 0x82, 0x82, 0x82, 0x82, 0xfe
+};
+
+void setup(){
+
+	pinMode(bottonL, INPUT);
+	pinMode(bottonR, INPUT);
+	pinMode(bottonJump, INPUT);
+
+
+	display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //or 0x3C
+	display.clearDisplay(); //for Clearing the display
+  display.drawBitmap(0, 57, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
+	display.drawBitmap(93, 52, Floor, 35, 2, WHITE);
+  display.display();
+
+
+}
+
+//Function for the movement mid air, this wil affect all places where you can move in the air
+void movementMidAir(){
+	
+	bottonStateR=digitalRead(bottonR);
+	if (bottonStateR==1){
+		PlayerCx= PlayerCx + 1;
+	}
+	bottonStateL=digitalRead(bottonL);
+	if (bottonStateL==1){
+		PlayerCx= PlayerCx - 1;
+	}
+
+
+}
+
+void displayofAll(){
+
+	display.clearDisplay(); //for Clearing the display
+	display.drawBitmap(93, 52, Floor, 35, 2, WHITE);
+  display.drawBitmap(PlayerCx , PlayerCy, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
+  display.display();
+
+}
+
+
+void loop() { 
+
+	bottonStateR=digitalRead(bottonR);
+	bottonStateL=digitalRead(bottonL);
+	bottonStateJump=digitalRead(bottonJump);
+
+//X axis movement
+
+	if ((bottonStateR==1)||(bottonStateL==1)){{
+
+		if (bottonStateR==1){
+		PlayerCx= PlayerCx + 1;
+		}
+		if (bottonStateL==1){
+		PlayerCx= PlayerCx -1;
+		}
+		if ((PlayerCx < 93)&&(PlayerCy == 45)){
+
+			for(int i=57; i>(PlayerCy); i=i) {
+				PlayerCy= PlayerCy +1;
+				movementMidAir();
+				displayofAll();
+				delay(2);
+			}
+	}
+		displayofAll();
+
+	}
+
+
+	}
+		//jump and moving
+		if (bottonStateJump==1){
+
+			for(int i=0; i<15; i++) {
+
+				PlayerCy= PlayerCy -1;
+				movementMidAir();
+
+				if ((PlayerCx > 93)&&(PlayerCy == 45)){
+					PlayerCy = 45;
+				}
+
+				displayofAll();
+				delay(5);
+
+				if (i==14){
+					//at is for air time, I used it to gave the efect that it manteins a certain time int the air
+					for (int at=0; at<3; at++){
+						movementMidAir();
+						if ((PlayerCx > 93)&&(PlayerCy == 45)){
+							PlayerCy = 45;
+						}
+
+						displayofAll();
+						delay(2);
+					}
+
+				}
+
+			}
+			for(int i=57; i>(PlayerCy); i=i) {
+
+				PlayerCy= PlayerCy +1;
+				movementMidAir();
+				if ((PlayerCx > 93)&&(PlayerCy == 45)){
+					PlayerCy = 45;
+					i=0;
+
+				}
+
+				
+				
+				displayofAll();
+				delay(2);
+				bottonStateJump=digitalRead(bottonJump);
+			
+
+
+		}
+
+	}
+
+
+}
+
+	
+
+	
