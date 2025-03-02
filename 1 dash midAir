@@ -1,0 +1,270 @@
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
+
+const int C=262;
+const int D=294;
+const int E=330;
+const int F=349;
+const int G=392;
+const int A=440;
+const int B=494;
+
+const int C2=524;
+const int Ds=622;
+const int Fs=740;
+
+
+#define bottonL 12
+#define bottonR 11
+#define bottonJump 10
+#define bottonDash 9
+#define bip 13
+
+int bottonStateR=0;
+int bottonStateL=0;
+int bottonStateJump=0;
+int bottonStateDash=0;
+
+int PlayerCx=0;
+int PlayerCy=57;
+//1 equal right 0 equals left
+int PlayerFaceDirection=1;
+
+
+int DashDistance= 15;
+int numofDashes=1;
+
+boolean airState=false;
+
+int ground = 57;
+int BasementFloor=57;
+
+
+//Images
+const unsigned char Pinchos [] PROGMEM = {
+	0x55, 0x55, 0x00, 0xff, 0xff, 0x80
+};
+const unsigned char Floor [] PROGMEM = {
+	0xff, 0xff, 0xff, 0xff, 0xe0, 0xff, 0xff, 0xff, 0xff, 0xe0
+};
+const unsigned char player [] PROGMEM = {
+	0xfe, 0x82, 0x82, 0x82, 0x82, 0x82, 0xfe
+};
+
+void setup(){
+
+	pinMode(bottonL, INPUT);
+	pinMode(bottonR, INPUT);
+	pinMode(bottonJump, INPUT);
+	pinMode(bottonDash, INPUT);
+	pinMode(bip, OUTPUT);
+
+	display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //or 0x3C
+	display.clearDisplay(); //for Clearing the display
+  display.drawBitmap(0, 57, player, 7, 7, WHITE); // display.drawBitmap(x position, y position, bitmap data, bitmap width, bitmap height, color)
+	display.drawBitmap(93, 52, Floor, 35, 2, WHITE);
+	display.drawBitmap(55, 62, Pinchos, 17, 2, WHITE);
+
+  display.display();
+
+}
+
+void airDetection (){
+
+	if (PlayerCy != ground){
+		airState= true;
+	}
+	
+}
+
+
+//Function for the movement mid air, this wil affect all places where you can move in the air
+void movementMidAir(){
+	
+	bottonStateR=digitalRead(bottonR);
+	if (bottonStateR==1){
+		PlayerCx= PlayerCx + 2;
+		PlayerFaceDirection=1;
+	}
+	bottonStateL=digitalRead(bottonL);
+	if (bottonStateL==1){
+		PlayerCx= PlayerCx - 2;
+		PlayerFaceDirection=0;
+	}
+	
+}
+
+void Dash (){
+	//Como meter un cool down
+	bottonStateDash=digitalRead(bottonDash);
+	if (bottonStateDash==1){
+		if (PlayerFaceDirection==1){
+			PlayerCx= PlayerCx + DashDistance;
+			delay(20);
+			displayofAll();
+
+
+		}
+		if (PlayerFaceDirection==0){
+			PlayerCx= PlayerCx - DashDistance;
+			delay(20);
+			displayofAll();
+
+		}
+
+	}
+}
+
+void DashMidAir(){
+
+	bottonStateDash=digitalRead(bottonDash);
+	if (bottonStateDash==1){
+		if ((PlayerFaceDirection==1)&&(numofDashes==1)){
+			PlayerCx= PlayerCx + DashDistance;
+			delay(20);
+			displayofAll();
+			numofDashes=0;
+		}
+
+
+
+		if ((PlayerFaceDirection==0)&&(numofDashes==1)){
+			PlayerCx= PlayerCx - DashDistance;
+			delay(20);
+			displayofAll();
+			numofDashes=0;
+			
+		}
+	}
+
+}
+
+
+
+
+void pinchos(){
+
+	if ((PlayerCx>49)&&(PlayerCx<68)&&(PlayerCy>56)){
+	
+		//I desasactivate the pikes for testing purposes, if you want the to work again, jost erase the // bellow
+		//PlayerCx=0;
+		//PlayerCy=57;
+		//delay(200);
+		
+	
+	}
+	
+
+}
+
+
+
+void displayofAll(){
+
+	display.clearDisplay(); //for Clearing the display
+	display.drawBitmap(93, 52, Floor, 35, 2, WHITE);
+  display.drawBitmap(PlayerCx , PlayerCy, player, 7, 7, WHITE);
+	display.drawBitmap(55, 62, Pinchos, 17, 2, WHITE);
+  display.display();
+
+}
+
+void object();
+
+
+
+void loop() { 
+
+	bottonStateR=digitalRead(bottonR);
+	bottonStateL=digitalRead(bottonL);
+	bottonStateJump=digitalRead(bottonJump);
+	bottonStateDash=digitalRead(bottonDash);
+
+
+//X axis movement
+
+//The "bug" were you keep moving up after the dash can be a mechanic
+	
+		//jump and moving
+		if ((bottonStateR==1)||(bottonStateL==1)||(bottonStateJump==1)||(bottonStateDash==1)){
+
+			Dash();
+			}
+			if (bottonStateR==1){
+				PlayerCx= PlayerCx + 2;
+				PlayerFaceDirection=1;
+			}
+			if (bottonStateL==1){
+				PlayerCx= PlayerCx -2;
+				PlayerFaceDirection=0;
+			}
+			if ((PlayerCx < 86)&&(PlayerCy == 45)){
+
+				for(int i=57; i>(PlayerCy); i=i) {
+					PlayerCy= PlayerCy +2;
+					DashMidAir();
+					movementMidAir();
+					displayofAll();
+
+					delay(2);
+				}
+			}
+
+			pinchos();
+			displayofAll();
+			if (bottonStateJump==1){
+				
+
+				for(int i=0; i<8; i++) {
+
+					PlayerCy= PlayerCy -2;
+					DashMidAir();
+					movementMidAir();
+					
+
+					if ((PlayerCx > 86)&&(PlayerCy == 45)){
+						PlayerCy = 45;
+					}
+
+					displayofAll();
+					delay(5);
+
+//Add the smouth from being in air for somome mili seconds
+
+				}
+				for(int i=57; i>(PlayerCy); i=i) {
+
+					bottonStateDash=digitalRead(bottonDash);
+
+					PlayerCy= PlayerCy +2;
+					
+					DashMidAir();
+					movementMidAir();
+					
+					if ((PlayerCx > 86)&&(PlayerCy == 45)){
+						PlayerCy = 45;
+						i=0;
+
+					}	
+					pinchos();
+					displayofAll();
+					delay(2);
+					bottonStateJump=digitalRead(bottonJump);
+			
+			}
+			numofDashes=1;
+			displayofAll();
+		}
+	}
+
+
+
+
+	
+
+	
