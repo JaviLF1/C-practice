@@ -1,0 +1,384 @@
+
+
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
+
+unsigned long time;
+unsigned long timeDash = 0;
+
+int PlayerSizeX=7;
+int PlayerSizeY=7;
+
+
+const int C=262;
+const int D=294;
+const int E=330;
+const int F=349;
+const int G=392;
+const int A=440;
+const int B=494;
+
+const int C2=524;
+const int Ds=622;
+const int Fs=740;
+
+
+#define bottonL 12
+#define bottonR 11
+#define bottonJump 10
+#define bottonDash 9
+#define bip 13
+
+int moveReset=0;
+int bottonStateR=0;
+int bottonStateL=0;
+int moveSpeedRight=2;
+int moveSpeedLeft=2;
+int fallingSpeed=2;
+int raisingSpeed=2;
+int bottonStateJump=0;
+int bottonStateDash=0;
+int floatX =0;
+int timeinAir=0;
+
+int bottonHoldJump=1;
+
+int PlayerCx=0;
+int PlayerCy=57;
+
+int RightPlayerHBx=PlayerCx + 7;
+int DownPlayerHBy=PlayerCy - 7;
+//1 equal right 0 equals left
+int PlayerFaceDirection=1;
+
+
+int DashDistance= 15;
+int numofDashes=1;
+int numofJumps=1;
+
+boolean airState=false;
+
+int ground = 57;
+int BasementFloor=57;
+
+
+//Images
+const unsigned char Pinchos [] PROGMEM = {
+	0x55, 0x55, 0x00, 0xff, 0xff, 0x80
+};
+const unsigned char Floor [] PROGMEM = {
+	0xff, 0xff, 0xff, 0xff, 0xe0, 0xff, 0xff, 0xff, 0xff, 0xe0
+};
+// 'Proyecto nuevo (2)', 1x24px
+const unsigned char Wall [] PROGMEM = {
+	0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 
+	0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80
+};
+const unsigned char player [] PROGMEM = {
+	0xfe, 0x82, 0x82, 0x82, 0x82, 0x82, 0xfe
+};
+
+void displayofAll(){
+
+	display.clearDisplay(); //for Clearing the display
+	display.drawBitmap(93, 52, Floor, 35, 2, WHITE);
+  display.drawBitmap(PlayerCx , PlayerCy, player, 7, 7, WHITE);
+	display.drawBitmap(55, 62, Pinchos, 17, 2, WHITE);
+	display.drawBitmap(20,41,Wall,1,24,WHITE);
+	display.drawBitmap(40,41,Wall,1,24,WHITE);
+  display.display();
+
+}
+
+void setup(){
+
+	pinMode(bottonL, INPUT);
+	pinMode(bottonR, INPUT);
+	pinMode(bottonJump, INPUT);
+	pinMode(bottonDash, INPUT);
+	pinMode(bip, OUTPUT);
+
+	display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //or 0x3C
+	displayofAll();
+}
+
+void airDetection (){
+
+	if (PlayerCy != ground){
+		airState= true;
+	}
+}
+
+void movementPlayer(){
+	
+	bottonStateR=digitalRead(bottonR);
+	if (bottonStateR==1){
+		PlayerCx= PlayerCx + moveSpeedRight;
+		PlayerFaceDirection=1;
+	}
+	bottonStateL=digitalRead(bottonL);
+	if (bottonStateL==1){
+		PlayerCx= PlayerCx - moveSpeedLeft;
+		PlayerFaceDirection=0;
+	}
+	
+}
+
+
+
+void platformWallHB(){
+	//Here Im working to make the wall detect if you dash in front of it, so It dont let you pass
+	//The wall is in X=20
+	//The problem of the cube been abel to pas to the other side is from the code down below
+
+	if ((PlayerCx==13)||(PlayerCx==14)){
+		PlayerCx=13;
+		moveSpeedRight=0;
+
+	}
+	if ((PlayerCx !=13)||(PlayerCy<=35)){
+		moveSpeedRight=2;
+	}
+	if ((PlayerCx==21)||(PlayerCx==20)){
+		PlayerCx=21;
+		moveSpeedLeft=0;
+	}
+	if ((PlayerCx !=21)||(PlayerCy<=35)){
+	moveSpeedLeft=2;
+	}		
+
+}
+
+
+//Here Im going to make the function to make the replication of walls easier
+void WallHB(int HBRight,int HBLeft,int heightHB){
+	//Here Im working to make the wall detect if you dash in front of it, so It dont let you pass
+	//The wall is in X=20
+	//The problem of the cube been abel to pas to the other side is from the code down below
+
+	if ((PlayerCx==HBRight-PlayerSizeX)||(PlayerCx==HBRight+1-PlayerSizeX)||(PlayerCx==HBLeft)||(PlayerCx==HBLeft-1)||
+			(PlayerCx==HBRight-1-PlayerSizeX)||(PlayerCx==HBRight-2-PlayerSizeX)||(PlayerCx==HBLeft+1)||(PlayerCx==HBLeft+2)){
+		
+
+		if ((PlayerCx==HBRight-PlayerSizeX)||(PlayerCx==HBRight+1-PlayerSizeX)){
+			PlayerCx=HBRight - PlayerSizeX;
+			moveSpeedRight=0;
+
+		}
+		if ((PlayerCx != HBRight-PlayerSizeX)||(PlayerCy<=heightHB-PlayerSizeX)){
+			moveSpeedRight=2;
+		}
+		if ((PlayerCx==HBLeft)||(PlayerCx==HBLeft-1)){
+			PlayerCx=HBLeft;
+			moveSpeedLeft=0;
+		}
+		if ((PlayerCx !=HBLeft)||(PlayerCy<=heightHB)){
+		moveSpeedLeft=2;
+		}		
+	}
+
+}
+
+void wallDashHB(){
+	if 	((PlayerFaceDirection==1)&&(numofDashes==1)&&(bottonStateDash==1)&&(DashDistance+PlayerCx>=13)&&(DashDistance+PlayerCx<=28)){
+		PlayerCx=13;
+		moveSpeedRight=0;
+		DashDistance=0;
+	}
+	if ((PlayerFaceDirection==0)&&(numofDashes==1)&&(bottonStateDash==1)&&(PlayerCx-DashDistance>=6)&&(PlayerCx-DashDistance<=21)){
+		PlayerCx=21;
+		moveSpeedLeft=0;
+		DashDistance=0;
+	}
+}
+
+void DashMidAir(){
+
+	bottonStateDash=digitalRead(bottonDash);
+	if ((bottonStateDash==1)&&(time>250+timeDash)){
+		timeDash=time;
+		if ((PlayerFaceDirection==1)&&(numofDashes==1)){
+			WallHB(40,41,40);
+			wallDashHB();
+			PlayerCx= PlayerCx + DashDistance;
+			DashDistance=15;
+			delay(20);
+			numofDashes=0;
+			time=0;
+			fallingSpeed=0;
+		}
+		if ((PlayerFaceDirection==0)&&(numofDashes==1)){
+			WallHB(40,41,40);
+			wallDashHB();
+			PlayerCx= PlayerCx - DashDistance;
+			DashDistance=15;
+			delay(20);
+			numofDashes=0;
+			time=0;
+			fallingSpeed=0;
+			
+		}
+	}
+}
+
+void jumpMidAirDown(){
+	bottonStateJump=digitalRead(bottonJump);
+	if ((bottonStateJump==1)&&(numofJumps >= 1)){
+		for(int i=0; i<8; i++){
+
+			PlayerCy= PlayerCy -raisingSpeed;
+			DashMidAir();
+			movementPlayer();
+			WallHB(40,41,40);
+			
+			platformWallHB();
+			
+			
+			numofJumps=0;
+			if ((bottonStateDash==1)&&(floatX=1)){
+				i=9;
+			}
+			displayofAll();
+
+		}
+	}
+}
+
+void pinchos(){
+
+	if ((PlayerCx>49)&&(PlayerCx<68)&&(PlayerCy>56)){
+	
+		//I desasactivate the pikes for testing purposes, if you want them to work again, just erase the // bellow
+		//PlayerCx=0;
+		//PlayerCy=57;
+		//delay(200);
+		
+	}
+}
+
+
+
+//void wallDashHB
+
+void falling () {
+	for(int i=57; i>(PlayerCy); i=i) {
+		PlayerCy= PlayerCy +fallingSpeed;
+		DashMidAir();
+		WallHB(40,41,40);
+		platformWallHB();
+		movementPlayer();
+		jumpMidAirDown();
+		pinchos();
+		if (fallingSpeed==0){
+			timeinAir= timeinAir+1;
+		}
+		if (timeinAir==3){
+
+			fallingSpeed=2;
+
+		}
+		displayofAll();
+		
+		
+		if ((PlayerCx > 86)&&(PlayerCy == 45)){
+			PlayerCy = 45;
+			i=0;
+			}
+		}
+	bottonHoldJump=1;
+	numofDashes=1;
+	numofJumps=1;
+	floatX=0;
+	timeinAir=0;
+
+		
+}
+
+void loop() { 
+
+	time=millis();
+	
+	bottonStateR=digitalRead(bottonR);
+	bottonStateL=digitalRead(bottonL);
+	bottonStateJump=digitalRead(bottonJump);
+	bottonStateDash=digitalRead(bottonDash);
+
+		if ((bottonStateR==1)||(bottonStateL==1)||(bottonStateJump==1)||(bottonStateDash==1)){
+			
+			movementPlayer();
+			DashMidAir();
+			WallHB(40,41,40);
+			WallHB(20,21,40)
+			if ((PlayerCx==13)||(PlayerCx==14)||(PlayerCx==21)||(PlayerCx==20)||
+					(PlayerCx==12)||(PlayerCx==11)||(PlayerCx==22)||(PlayerCx==23)){
+				platformWallHB();
+			}
+
+			displayofAll();
+
+			
+			if ((PlayerCx < 86)&&(PlayerCy == 45)){
+				falling ();
+
+			}			
+		
+			if (bottonStateJump==1){
+				//This works the same as the normal jump
+				for(int i=0; i<8; i++) {
+					WallHB(40,41,40);
+					platformWallHB();
+					PlayerCy= PlayerCy - raisingSpeed;
+
+					DashMidAir();
+					movementPlayer();
+					if ((bottonStateDash==1)&&(floatX=1)){
+						i=9;
+					}
+					bottonStateJump=digitalRead(bottonJump);
+					//this helps that the first imput of jump doesnt overlap with the second jump
+					if (bottonStateJump==0){
+
+						bottonHoldJump=0;
+					}
+					if ((bottonStateJump==1)&&(numofJumps >= 1)&&(bottonHoldJump==0)){
+						
+						i=0;
+						numofJumps=0;
+					}
+
+					if ((PlayerCx > 86)&&(PlayerCy == 45)){
+						PlayerCy = 45;
+					}
+
+					displayofAll();
+
+				}
+				falling();
+				WallHB(40,41,40);
+				platformWallHB();
+				
+				
+
+				bottonStateJump=digitalRead(bottonJump);
+			
+			}
+			bottonHoldJump=1;
+			numofDashes=1;
+			numofJumps=1;
+			timeinAir=0;
+
+		}
+	}
+
+
+
+
+
+	
+
+	
