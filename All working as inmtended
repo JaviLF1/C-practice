@@ -444,7 +444,7 @@ void loop() {
 				falling ();
 
 			}		
-			if (((PlayerCx < 60-PlayerSizeX-2)||(PlayerCx > 101))&&(PlayerCy == 30-PlayerSizeY)){
+			if (((PlayerCx < 60-PlayerSizeX-2)||(PlayerCx > 92))&&(PlayerCy == 30-PlayerSizeY)){
 				falling();
 			}	
 			if (((PlayerCx < 86)||(PlayerCx>128))&&(PlayerCy == 15-PlayerSizeY)){
