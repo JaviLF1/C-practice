@@ -394,12 +394,12 @@ void falling () {
 
 		}
 
-		if ((PlayerCx > 96-PlayerSizeX-2)&&(PlayerCy == 45)&&(PlayerCx < 128)){
+		if (((PlayerCx > 96-PlayerSizeX-2)&&(PlayerCx < 128))&&((PlayerCy == 45)||(PlayerCy == 46))){
 			PlayerCy = 45;
 			i=0;
 			}
 		
-		if (((PlayerCx > 60-PlayerSizeX-2)&&(PlayerCx < 101))&&((PlayerCy == 30-PlayerSizeY)||(PlayerCy == 31-PlayerSizeY))){
+		if (((PlayerCx > 60-PlayerSizeX-2)&&(PlayerCx < 92))&&((PlayerCy == 30-PlayerSizeY)||(PlayerCy == 31-PlayerSizeY))){
 			PlayerCy = 30-PlayerSizeY;
 			i=0;
 			}
@@ -451,9 +451,9 @@ void loop() {
 				falling ();
 			}
 			//HotBoxes of the top of a wall
-			if (((PlayerCx < 60-PlayerSizeX-2)||(PlayerCx > 101))&&(PlayerCy == 30-PlayerSizeY)){
+			/*if (((PlayerCx < 60-PlayerSizeX-2)||(PlayerCx > 101))&&(PlayerCy == 30-PlayerSizeY)){
 				falling();
-			}
+			}*/
 
 			
 			if (bottonStateJump==1){
