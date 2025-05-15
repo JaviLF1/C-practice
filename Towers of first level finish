@@ -1,0 +1,709 @@
+//If you use the dash next to a wall it will keep the moveSpeed to 0
+
+
+#include <Arduino.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+#define OLED_RESET 4
+Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET);
+
+unsigned long time;
+unsigned long timeDash = 0;
+
+int PlayerSizeX=7;
+int PlayerSizeY=7;
+
+
+const int C=262;
+const int D=294;
+const int E=330;
+const int F=349;
+const int G=392;
+const int A=440;
+const int B=494;
+
+const int C2=524;
+const int Ds=622;
+const int Fs=740;
+
+
+#define bottonL 12
+#define bottonR 11
+#define bottonJump 10
+#define bottonDash 9
+#define bip 13
+
+int cameraPositionX=0;
+int cameraStartPosition=100;
+int cameraRelativePosition=100;
+int cameraCenterR=60;
+int cameraCenterL=60;
+int cameraAdj=0;
+int cameraDistanceAdj=0;
+
+int moveReset=0;
+int bottonStateR=0;
+int bottonStateL=0;
+int moveSpeedRight=2;
+int moveSpeedLeft=2;
+int fallingSpeed=2;
+int raisingSpeed=2;
+int bottonStateJump=0;
+int bottonStateDash=0;
+int floatX =0;
+int timeinAir=0;
+int numOfLives=3;
+
+int doubleJumpAllow=0;
+int dashAllow=0;
+
+int bottonHoldJump=1;
+
+int PlayerCx=95;
+int PlayerCy=57;
+
+int RightPlayerHBx=PlayerCx + 7;
+int DownPlayerHBy=PlayerCy - 7;
+//1 equal right 0 equals left
+int PlayerFaceDirection=1;
+
+
+int DashDistance= 15;
+int numofDashes=1;
+int numofJumps=1;
+
+boolean airState=false;
+
+int ground = 57;
+int BasementFloor=57;
+
+
+//Images
+const unsigned char Pinchos [] PROGMEM = {
+	0x55, 0x55, 0x00, 0xff, 0xff, 0x80
+};
+const unsigned char Floor [] PROGMEM = {
+	0xff, 0xff, 0xff, 0xff, 0xe0, 0xff, 0xff, 0xff, 0xff, 0xe0
+};
+// 'Proyecto nuevo (2)', 1x24px
+const unsigned char Wall [] PROGMEM = {
+	0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 
+	0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80
+};
+const unsigned char player [] PROGMEM = {
+	0xfe, 0x82, 0x82, 0x82, 0x82, 0x82, 0xfe
+};
+
+const unsigned char Wall1x12 [] PROGMEM = {
+	0xc0, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80
+};
+const unsigned char Wall2x12 [] PROGMEM = {
+	0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0
+};
+// 'Proyecto nuevo (4)', 20x2px
+const unsigned char Floor20x2 [] PROGMEM = {
+	0xff, 0xff, 0xf0, 0xff, 0xff, 0xf0
+};
+// 'Proyecto nuevo (5)', 2x32px
+const unsigned char Wall2x32 [] PROGMEM = {
+	0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 
+	0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0, 0xc0
+};
+
+//I just took out some pixels
+const unsigned char YouWon[] PROGMEM = {
+
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x00, 0xe0, 
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x0f, 0x01, 0xe0, 
+
+
+};
+
+void displayofAll(){
+
+	display.clearDisplay(); //for Clearing the display
+
+	display.drawBitmap(80+cameraPositionX+cameraAdj, 52, Floor, 35, 2, WHITE);
+	display.drawBitmap(60+cameraPositionX+cameraAdj, 30, Floor, 35, 2, WHITE);
+	display.drawBitmap(96+cameraPositionX+cameraAdj, 15, Floor, 35, 2, WHITE);
+	display.drawBitmap(160+cameraPositionX+cameraAdj, 52, Floor, 35, 2, WHITE);
+
+  display.drawBitmap(PlayerCx+cameraPositionX+cameraAdj , PlayerCy, player, 7, 7, WHITE);
+
+	
+	display.drawBitmap(80+cameraPositionX+cameraAdj,53,Wall2x12,2,12,WHITE);
+	display.drawBitmap(113+cameraPositionX+cameraAdj,53,Wall2x12,2,12,WHITE);
+	display.drawBitmap(160+cameraPositionX+cameraAdj,53,Wall2x12,2,12,WHITE);
+	display.drawBitmap(193+cameraPositionX+cameraAdj,53,Wall2x12,2,12,WHITE);
+	display.drawBitmap(196+cameraPositionX+cameraAdj, 62, Pinchos, 17, 2, WHITE);
+	display.drawBitmap(213+cameraPositionX+cameraAdj, 52, Floor, 35, 2, WHITE);
+	display.drawBitmap(213+cameraPositionX+cameraAdj,53,Wall2x12,2,12,WHITE);
+	display.drawBitmap(246+cameraPositionX+cameraAdj,53,Wall2x12,2,12,WHITE);
+
+
+	display.drawBitmap(276+cameraPositionX+cameraAdj, 52, Floor20x2, 20, 2, WHITE);
+	display.drawBitmap(276+cameraPositionX+cameraAdj, 52, Wall2x32, 2, 32, WHITE);
+	display.drawBitmap(296+cameraPositionX+cameraAdj, 52, Wall2x32, 2, 32, WHITE);
+	display.drawBitmap(296+cameraPositionX+cameraAdj, 62, Pinchos, 17, 2, WHITE);
+
+
+	display.drawBitmap(311+cameraPositionX+cameraAdj, 42, Floor20x2, 20, 2, WHITE);
+	display.drawBitmap(311+cameraPositionX+cameraAdj, 42, Wall2x32, 2, 32, WHITE);
+	display.drawBitmap(331+cameraPositionX+cameraAdj, 42, Wall2x32, 2, 32, WHITE);
+	display.drawBitmap(331+cameraPositionX+cameraAdj, 62, Pinchos, 17, 2, WHITE);
+
+
+	display.drawBitmap(346+cameraPositionX+cameraAdj, 32, Floor20x2, 20, 2, WHITE);
+	display.drawBitmap(346+cameraPositionX+cameraAdj, 32, Wall2x32, 2, 32, WHITE);
+	display.drawBitmap(366+cameraPositionX+cameraAdj, 32, Wall2x32, 2, 32, WHITE);
+
+
+	//213
+	
+
+  display.display();
+
+}
+
+void setup(){
+
+	pinMode(bottonL, INPUT);
+	pinMode(bottonR, INPUT);
+	pinMode(bottonJump, INPUT);
+	pinMode(bottonDash, INPUT);
+	pinMode(bip, OUTPUT);
+
+	display.begin(SSD1306_SWITCHCAPVCC, 0x3C); //or 0x3C
+	displayofAll();
+}
+
+void airDetection (){
+
+	if (PlayerCy != ground){
+		airState= true;
+	}
+}
+
+void movementPlayer(){
+	
+	bottonStateR=digitalRead(bottonR);
+	if (bottonStateR==1){
+		PlayerCx= PlayerCx + moveSpeedRight;
+		PlayerFaceDirection=1;
+	}
+	if ((bottonStateR==1)&&(PlayerCx>=100)){
+
+	//We can do this but with the variabels PlayerCx to be more precise when reenterinf the zone
+
+		if (PlayerCx>=180){
+			cameraPositionX=cameraPositionX-moveSpeedRight;
+
+		}
+		if ((PlayerCx>=100)&&(PlayerCx<=180)){
+			//falta una  suma
+			if (moveSpeedRight==2){
+			cameraPositionX=cameraPositionX-moveSpeedRight;
+			cameraRelativePosition=cameraRelativePosition-1;
+			cameraAdj=cameraAdj-1;
+
+			}
+
+
+
+		}
+	
+
+
+	}
+	
+	
+	bottonStateL=digitalRead(bottonL);
+	if ((bottonStateL==1)&&(PlayerCx>=100)){
+
+
+		if (PlayerCx>=180){
+			cameraPositionX=cameraPositionX+moveSpeedLeft;
+
+		}
+		if ((PlayerCx>=100)&&(PlayerCx<=180)){
+			//falta una  suma ||PlayerCx<10)&&(PlayerCx
+			if (moveSpeedLeft==2){
+
+			cameraPositionX=cameraPositionX+moveSpeedLeft;
+			cameraRelativePosition=cameraRelativePosition+1;
+			cameraAdj=cameraAdj+1;
+			}
+
+
+
+		}
+//Restando la Relative Position a la start se da el effecto, voy por un té
+
+	}
+	if (bottonStateL==1){
+		PlayerCx= PlayerCx - moveSpeedLeft;
+		PlayerFaceDirection=0;
+	}
+
+	
+}
+
+
+
+void platformWallHB(){
+	//Here Im working to make the wall detect if you dash in front of it, so It dont let you pass
+	//The wall is in X=20
+	//The problem of the cube been abel to pas to the other side is from the code down below
+
+	if ((PlayerCx==13)||(PlayerCx==14)){
+		PlayerCx=13;
+		moveSpeedRight=0;
+
+	}
+	if ((PlayerCx !=13)||(PlayerCy<=35)){
+		moveSpeedRight=2;
+	}
+	if ((PlayerCx==21)||(PlayerCx==20)){
+		PlayerCx=21;
+		moveSpeedLeft=0;
+	}
+	if ((PlayerCx !=21)||(PlayerCy<=35)){
+	moveSpeedLeft=2;
+	}		
+
+}
+
+
+//Here Im going to make the function to make the replication of walls easier
+void WallHB(int HBRight,int HBLeft,int heightHBM){
+	//Here Im working to make the wall detect if you dash in front of it, so It dont let you pass
+	//The wall is in X=20
+	//The problem of the cube been abel to pas to the other side is from the code down below
+
+	if ((PlayerCx==HBRight-PlayerSizeX)||(PlayerCx==HBRight+1-PlayerSizeX)||(PlayerCx==HBLeft)||(PlayerCx==HBLeft-1)||
+			(PlayerCx==HBRight-1-PlayerSizeX)||(PlayerCx==HBRight-2-PlayerSizeX)||(PlayerCx==HBLeft+1)||(PlayerCx==HBLeft+2)){
+		
+
+		if ((PlayerCx==HBRight-PlayerSizeX)||(PlayerCx==HBRight+1-PlayerSizeX)){
+			PlayerCx=HBRight - PlayerSizeX;
+			moveSpeedRight=0;
+
+		}
+		if ((PlayerCx != HBRight-PlayerSizeX)||(PlayerCy<=heightHBM-PlayerSizeY)){
+			moveSpeedRight=2;
+		}
+		if ((PlayerCx==HBLeft)||(PlayerCx==HBLeft-1)){
+			PlayerCx=HBLeft;
+			moveSpeedLeft=0;
+		}
+		if ((PlayerCx !=HBLeft)||(PlayerCy<=heightHBM-PlayerSizeY)){
+		moveSpeedLeft=2;
+		}	
+		if (((PlayerCx > HBRight-PlayerSizeX-2)&&(PlayerCx < HBRight))&&((PlayerCy == heightHBM-PlayerSizeY)||(PlayerCy == heightHBM-PlayerSizeY+1))){
+
+		}
+	}
+
+}
+void FwallDashHB(int HBRight,int HBLeft, int heightHBM){
+	if 	((PlayerFaceDirection==1)&&(numofDashes==1)&&(bottonStateDash==1)&&(DashDistance+PlayerCx>=HBRight-PlayerSizeX)
+	&&(DashDistance+PlayerCx<=HBLeft+DashDistance-PlayerSizeX)&&(PlayerCy>=heightHBM-PlayerSizeY)){
+		PlayerCx=HBRight-PlayerSizeX;
+		
+		DashDistance=0;
+	}
+	if ((PlayerFaceDirection==0)&&(numofDashes==1)&&(bottonStateDash==1)&&(PlayerCx-DashDistance>=HBLeft-DashDistance)
+	&&(PlayerCx-DashDistance<=HBLeft)&&(PlayerCy>=heightHBM-PlayerSizeY)){
+		PlayerCx=HBLeft;
+		
+		DashDistance=0;
+	}
+}
+
+void wallDashHB(){
+	if 	((PlayerFaceDirection==1)&&(numofDashes==1)&&(bottonStateDash==1)&&(DashDistance+PlayerCx>=13)&&(DashDistance+PlayerCx<=28)){
+		PlayerCx=13;
+		moveSpeedRight=0;
+		DashDistance=0;
+	}
+	if ((PlayerFaceDirection==0)&&(numofDashes==1)&&(bottonStateDash==1)&&(PlayerCx-DashDistance>=6)&&(PlayerCx-DashDistance<=21)){
+		PlayerCx=21;
+		moveSpeedLeft=0;
+		DashDistance=0;
+	}
+}
+
+void DashMidAir(){
+
+	bottonStateDash=digitalRead(bottonDash);
+	
+	if ((bottonStateDash==1)&&(time>250+timeDash)){
+		
+		timeDash=time;
+		if ((PlayerFaceDirection==1)&&(numofDashes==1)){
+			tone(bip,Ds,70);
+ 		  delay(30);
+  		tone(bip,Fs,100);
+
+			
+			FwallDashHB(80,81,40);
+		
+			
+			PlayerCx= PlayerCx + DashDistance;
+			floatX=1;
+			if ((PlayerCx>=100)){
+				cameraPositionX=cameraPositionX-DashDistance;
+
+			}
+			DashDistance=15;
+			delay(20);
+			numofDashes=0;
+			time=0;
+			fallingSpeed=0;
+		}
+		if ((PlayerFaceDirection==0)&&(numofDashes==1)){
+			tone(bip,Ds,70);
+ 		  delay(30);
+  		tone(bip,Fs,100);
+
+			FwallDashHB(80,81,40);
+			
+			PlayerCx= PlayerCx - DashDistance;
+			if ((PlayerCx>=100)){
+				cameraPositionX=cameraPositionX+DashDistance;
+
+			}
+			floatX=1;
+			DashDistance=15;
+			delay(20);
+			numofDashes=0;
+			time=0;
+			fallingSpeed=0;
+			
+		}
+		timeinAir=0;
+	}
+}
+
+void jumpMidAirDown(){
+	bottonStateJump=digitalRead(bottonJump);
+	if ((bottonStateJump==1)&&(numofJumps >= 1)){
+		tone(bip,D,100);
+  	delay(50);
+  	tone(bip,A,200);
+		for(int i=0; i<8; i++){
+
+			PlayerCy= PlayerCy -raisingSpeed;
+			
+			DashMidAir();
+			WallHB(80,81,52);		
+			WallHB(113,114,52);	
+			WallHB(160,161,52);	
+			WallHB(193,194,52);	
+			pinchos(196,213,64);
+			WallHB(213,214,52);
+			WallHB(246,247,52);
+
+			//Towers
+			WallHB(276,277,52);		
+			WallHB(296,297,52);	
+			pinchos(296,311,64);
+			WallHB(311,312,42);		
+			WallHB(331,332,42);
+			pinchos(331,346,64);	
+			WallHB(346,347,32);					
+			WallHB(366,367,32);	
+			
+			movementPlayer();
+			
+
+			
+			
+			numofJumps=0;
+			if (floatX==1){
+				i=9;
+				floatX=0;
+			}
+			displayofAll();
+
+		}
+	}
+}
+
+void pinchos(int HBRight,int HBLeft,int heightHBM ){
+
+	if ((PlayerCx>HBRight-PlayerSizeX)&&(PlayerCx<HBLeft)&&(PlayerCy==heightHBM-PlayerSizeY)){
+	
+
+		PlayerCx=0;
+		PlayerCy=57;
+		cameraPositionX=0;
+		cameraAdj=0;
+		delay(200);
+		moveSpeedLeft=2;
+		moveSpeedRight=2;
+
+
+		
+	}
+}
+
+
+
+
+void falling () {
+	for(int i=57; i>(PlayerCy); i=i) {
+
+		if (PlayerCy==58){
+			PlayerCy=57;
+		}
+		DashMidAir();
+		PlayerCy= PlayerCy +fallingSpeed;
+		
+		WallHB(80,81,52);
+		WallHB(113,114,52);
+		WallHB(160,161,52);	
+		WallHB(193,194,52);	
+		pinchos(196,213,64);
+		WallHB(213,214,52);
+		WallHB(246,247,52);
+		//Towers
+		WallHB(276,277,52);		
+		WallHB(296,297,52);	
+		pinchos(296,311,64);
+		WallHB(311,312,42);		
+		WallHB(331,332,42);
+		pinchos(331,346,64);	
+		WallHB(346,347,32);					
+		WallHB(366,367,32);	
+		movementPlayer();
+		
+		jumpMidAirDown();
+		
+		if ((fallingSpeed==0)){
+			timeinAir= timeinAir+1;
+		}
+		if (timeinAir==3){
+
+			fallingSpeed=2;
+
+		}
+
+		//Here you have to add the hitbox of your platform
+		if (((PlayerCx > 80-PlayerSizeX-2)&&(PlayerCx < 115))&&((PlayerCy == 45)||(PlayerCy == 46))){
+			PlayerCy = 45;
+			i=0;
+			}
+		
+		if (((PlayerCx > 60-PlayerSizeX-2)&&(PlayerCx < 92))&&((PlayerCy == 30-PlayerSizeY)||(PlayerCy == 31-PlayerSizeY))){
+			PlayerCy = 30-PlayerSizeY;
+			i=0;
+			}
+		if (((PlayerCx > 96-PlayerSizeX-2)&&(PlayerCx < 128))&&((PlayerCy == 15-PlayerSizeY)||(PlayerCy == 16-PlayerSizeY))){
+			PlayerCy = 15-PlayerSizeY;
+			i=0;
+		}
+		if (((PlayerCx > 160-PlayerSizeX-2)&&(PlayerCx < 195))&&((PlayerCy == 52-PlayerSizeY)||(PlayerCy == 53-PlayerSizeY))){
+			PlayerCy = 52-PlayerSizeY;
+			i=0;
+		}
+		if (((PlayerCx > 213-PlayerSizeX-2)&&(PlayerCx < 248))&&((PlayerCy == 52-PlayerSizeY)||(PlayerCy == 53-PlayerSizeY))){
+			PlayerCy = 52-PlayerSizeY;
+			i=0;
+		}		
+		if (((PlayerCx > 276-PlayerSizeX-2)&&(PlayerCx <296))&&((PlayerCy == 52-PlayerSizeY)||(PlayerCy == 53-PlayerSizeY))){
+			PlayerCy = 52-PlayerSizeY;
+			i=0;
+		}	
+		if (((PlayerCx > 311-PlayerSizeX-2)&&(PlayerCx <331))&&((PlayerCy == 42-PlayerSizeY)||(PlayerCy == 43-PlayerSizeY))){
+			PlayerCy = 42-PlayerSizeY;
+			i=0;
+		}	
+		if (((PlayerCx > 346-PlayerSizeX-2)&&(PlayerCx <366))&&((PlayerCy == 32-PlayerSizeY)||(PlayerCy == 33-PlayerSizeY))){
+			PlayerCy = 32-PlayerSizeY;
+			i=0;
+		}	
+		//276
+
+
+
+		displayofAll();
+		}
+	bottonHoldJump=1;
+	numofDashes=1;
+	numofJumps=1;
+	floatX=0;
+	timeinAir=0;
+
+		
+}
+//We are going to use this to simplify when falling from a platform
+
+void fallingFromPlatform(int startPosition,int endPosition, int heightPlatform){
+	if (((PlayerCx < startPosition-PlayerSizeX-2)&&(PlayerCx >= startPosition-PlayerSizeX-4))||
+		 ((PlayerCx > endPosition)&&(PlayerCx <= endPosition+2))){
+			if ((PlayerCy == heightPlatform-PlayerSizeY)){
+				falling();
+			}
+		
+	}		
+
+}
+
+
+
+void loop() { 
+
+	time=millis();
+	
+	bottonStateR=digitalRead(bottonR);
+	bottonStateL=digitalRead(bottonL);
+	bottonStateJump=digitalRead(bottonJump);
+	bottonStateDash=digitalRead(bottonDash);
+
+		if ((bottonStateR==1)||(bottonStateL==1)||(bottonStateJump==1)||(bottonStateDash==1)){
+			
+			DashMidAir();		
+			WallHB(80,81,52);
+			WallHB(113,114,52);
+			WallHB(160,161,52);	
+			WallHB(193,194,52);	
+			pinchos(196,213,64);
+			WallHB(213,214,52);
+			WallHB(246,247,52);
+
+			//Towers
+			WallHB(276,277,52);		
+			WallHB(296,297,52);	
+			pinchos(296,311,64);
+			WallHB(311,312,42);		
+			WallHB(331,332,42);
+			pinchos(331,346,64);	
+			WallHB(346,347,32);					
+			WallHB(366,367,32);		
+
+
+			
+			movementPlayer();
+			
+
+
+
+			displayofAll();
+
+			//HitBoxes of of the platforms
+
+			fallingFromPlatform(80,115,52);
+			fallingFromPlatform(60,95,30);
+			fallingFromPlatform(86,128,15);
+			fallingFromPlatform(160,195,52);		
+			fallingFromPlatform(213,248,52);
+			fallingFromPlatform(276,296,52);
+			fallingFromPlatform(311,331,42);
+			fallingFromPlatform(346,366,32);
+
+
+
+			
+			if (bottonStateJump==1){
+				  tone(bip,D,100);
+  				delay(50);
+  				tone(bip,A,200);
+				//This works the same as the normal jump
+				for(int i=0; i<8; i++) {
+
+
+					PlayerCy= PlayerCy - raisingSpeed;
+
+					fallingSpeed=0;
+					timeinAir=1;
+
+					DashMidAir();
+					WallHB(80,81,52);
+					WallHB(113,114,52);
+					WallHB(160,161,52);	
+					WallHB(193,194,52);	
+					pinchos(196,213,64);
+					WallHB(213,214,52);
+					WallHB(246,247,52);
+					//Towers
+
+					WallHB(276,277,52);		
+					WallHB(296,297,52);	
+					pinchos(296,311,64);
+					WallHB(311,312,42);		
+					WallHB(331,332,42);
+					pinchos(331,346,64);	
+					WallHB(346,347,32);					
+					WallHB(366,367,32);	
+
+					movementPlayer();
+					
+					if ((floatX==1)){
+
+						fallingSpeed=0;
+						timeinAir=0;
+						i=9;
+						floatX=0;
+					}
+					bottonStateJump=digitalRead(bottonJump);
+					//this helps that the first imput of jump doesnt overlap with the second jump
+					if (bottonStateJump==0){
+
+						bottonHoldJump=0;
+					}
+					if ((bottonStateJump==1)&&(numofJumps >= 1)&&(bottonHoldJump==0)){
+						tone(bip,D,100);
+  					delay(50);
+  					tone(bip,A,200);
+						
+						i=0;
+						numofJumps=0;
+					}
+
+					/*if ((PlayerCx > 86)&&(PlayerCy == 45)){
+						PlayerCy = 45;
+					}
+					if ((PlayerCx > 60-PlayerSizeX-2)&&(PlayerCy == 32)&&(PlayerCx < 101)){
+						PlayerCy = 32;
+			
+					}*/
+
+					displayofAll();
+
+				}
+
+				falling();
+				WallHB(80,41,40);
+				
+				
+				
+
+				bottonStateJump=digitalRead(bottonJump);
+			
+			}
+			bottonHoldJump=1;
+			numofDashes=1;
+			numofJumps=1;
+			timeinAir=0;
+
+			if ((PlayerCx==128-PlayerSizeX)&&(PlayerCy==15-PlayerSizeY)){
+				/*display.clearDisplay();
+				display.drawBitmap(0,0,YouWon,128,64,WHITE);
+				display.display();
+				delay(10000);*/
+
+
+			}
+
+		}
+	}
+
+
+
+
+
+	
+
+	
